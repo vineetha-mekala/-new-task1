@@ -1,0 +1,137 @@
+# get_papers.py - Module for fetching and filtering PubMed papers
+
+import argparse
+import csv
+import logging
+import sys
+from typing import List, Dict, Optional, Tuple
+
+import requests
+from Bio import Entrez
+
+Entrez.email = "your.email@example.com"  # Replace with your email
+
+def fetch_pubmed_ids(query: str) -> List[str]:
+    """Fetches PubMed IDs based on a query."""
+    try:
+        handle = Entrez.esearch(db="pubmed", term=query, retmax=500)  # Adjust retmax as needed
+        record = Entrez.read(handle)
+        handle.close()
+        return record["IdList"]
+    except Exception as e:
+        logging.error(f"Error fetching PubMed IDs: {e}")
+        return []
+
+def fetch_paper_details(pubmed_id: str) -> Optional[Dict[str, str]]:
+    """Fetches details of a paper using its PubMed ID."""
+    try:
+        handle = Entrez.efetch(db="pubmed", id=pubmed_id, rettype="medline", retmode="text")
+        record = handle.read()
+        handle.close()
+
+        details = {}
+        for line in record.splitlines():
+            if line.startswith("PMID-"):
+                details["PubMedID"] = line.split("-")[1].strip()
+            elif line.startswith("TI  -"):
+                details["Title"] = line.split("-")[1].strip()
+            elif line.startswith("DP  -"):
+                details["Publication Date"] = line.split("-")[1].strip()
+            elif line.startswith("AU  -"):
+                if "Authors" not in details:
+                    details["Authors"] = []
+                details["Authors"].append(line.split("-")[1].strip())
+            elif line.startswith("AD  -"):
+                if "Affiliations" not in details:
+                    details["Affiliations"] = []
+                details["Affiliations"].append(line.split("-")[1].strip())
+            elif line.startswith("FAU -"):
+                if "FullAuthors" not in details:
+                    details["FullAuthors"] = []
+                details["FullAuthors"].append(line.split("-")[1].strip())
+            elif line.startswith("EM  -"):
+                details["Corresponding Author Email"] = line.split("-")[1].strip()
+
+        return details
+    except Exception as e:
+        logging.error(f"Error fetching paper details for {pubmed_id}: {e}")
+        return None
+
+def is_non_academic(affiliation: str) -> bool:
+    """Checks if an affiliation is from a non-academic institution."""
+    non_academic_keywords = ["pharmaceutical", "biotech", "company", "inc", "ltd"]
+    return any(keyword in affiliation.lower() for keyword in non_academic_keywords)
+
+def extract_non_academic_authors(details: Dict[str, str]) -> Tuple[List[str], List[str]]:
+    """Extracts non-academic authors and their affiliations."""
+    non_academic_authors = []
+    company_affiliations = []
+
+    if "Authors" in details and "Affiliations" in details:
+        for author, affiliation in zip(details["Authors"], details["Affiliations"]):
+            if is_non_academic(affiliation):
+                non_academic_authors.append(author)
+                company_affiliations.append(affiliation)
+
+    return non_academic_authors, company_affiliations
+
+def process_papers(pubmed_ids: List[str]) -> List[Dict[str, str]]:
+    """Processes a list of PubMed IDs and returns filtered paper details."""
+    results = []
+    for pubmed_id in pubmed_ids:
+        details = fetch_paper_details(pubmed_id)
+        if details:
+            non_academic_authors, company_affiliations = extract_non_academic_authors(details)
+            if non_academic_authors:
+                results.append({
+                    "PubMedID": details.get("PubMedID", ""),
+                    "Title": details.get("Title", ""),
+                    "Publication Date": details.get("Publication Date", ""),
+                    "Non-academic Author(s)": ", ".join(non_academic_authors),
+                    "Company Affiliation(s)": ", ".join(company_affiliations),
+                    "Corresponding Author Email": details.get("Corresponding Author Email", "")
+                })
+    return results
+
+def write_to_csv(results: List[Dict[str, str]], filename: str) -> None:
+    """Writes results to a CSV file."""
+    try:
+        with open(filename, "w", newline="", encoding="utf-8") as csvfile:
+            fieldnames = ["PubMedID", "Title", "Publication Date", "Non-academic Author(s)", "Company Affiliation(s)", "Corresponding Author Email"]
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(results)
+        logging.info(f"Results written to {filename}")
+    except Exception as e:
+        logging.error(f"Error writing to CSV: {e}")
+
+def main() -> None:
+    """Main function to execute the program."""
+    parser = argparse.ArgumentParser(description="Fetch research papers from PubMed.")
+    parser.add_argument("query", help="PubMed query.")
+    parser.add_argument("-f", "--file", help="Filename to save results.")
+    parser.add_argument("-d", "--debug", action="store_true", help="Print debug information.")
+    parser.add_argument("-h", "--help", action="help", help="Show this help message and exit")
+
+    args = parser.parse_args()
+
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
+
+    pubmed_ids = fetch_pubmed_ids(args.query)
+    if not pubmed_ids:
+        logging.error("No PubMed IDs found. Exiting.")
+        sys.exit(1)
+
+    results = process_papers(pubmed_ids)
+
+    if args.file:
+        write_to_csv(results, args.file)
+    else:
+        for result in results:
+            print(result)
+
+if _name_ == "_main_":
+    main()
