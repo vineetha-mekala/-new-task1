@@ -1,0 +1,42 @@
+# Complete Requirements Summary:
+ 1.Fetch research papers using the PubMed API.
+ 2.Support PubMed's full query syntax.
+ 3.Identify papers with at least one author affiliated with a pharmaceutical or biotech company.
+ 4.Return the results as a CSV file with the following columns:
+   * PubMedID
+   * Title
+   * Publication Date
+   * Non-academic Author(s)
+   * Company Affiliation(s)
+   * Corresponding Author Email
+ 5.Command-line Program Features:
+   * Accept the query as a command-line argument.
+   * Provide the following options:
+     * -h or --help: Display usage instructions.
+     * -d or --debug: Print debug information during execution.
+     * -f or --file: Specify the filename to save the results. If this option is not provided, print the output to the console.
+ 6.Code Organization and Environment:
+   * Version Control: Use Git, host the code on GitHub.
+   * Dependencies and Setup: Use Poetry for dependency management. poetry install should set up all dependencies.
+   * Execution: Provide an executable command named get-papers-list via Poetry.
+ 7.Documentation:
+   * Include a README.md file with details on how the code is organized.
+   * Instructions on how to install dependencies and execute the program.
+   * Mention any tools (LLMs or libraries) used to build the program, along with relevant links.
+ 8.Evaluation Criteria:
+   * Functional Requirements:
+     * Adherence to the problem statement.
+     * Ability to fetch and filter results correctly.
+   * Non-functional Requirements:
+     * Typed Python: Using types everywhere.
+     * Performance: Efficiency of API calls and processing.
+     * Readability: Clear and maintainable code with appropriate comments and docstrings.
+     * Organization: Logical separation of concerns (modular functions and classes).
+     * Robustness: Error handling for invalid queries, API failures, or missing data.
+ 9.Bonus Points:
+   * Break the program into two parts: a module and a command-line program that uses the module.
+   * Publish the module in test-pypi.
+ 10.Notes:
+   * Use LLM tools as needed, document them in README.md.
+   * Strict adherence to conventions for automated evaluation.
+   * Use heuristics to identify non-academic authors.
