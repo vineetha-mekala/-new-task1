@@ -1,0 +1,17 @@
+To use this code:
+ 1.Save: Save the code as get_papers.py.
+ 2.Install Dependencies:
+   * Ensure you have Python and pip installed.
+   * Install biopython and any other required libraries:
+     ==>pip install biopython
+
+ 3.Run:
+   * Open a terminal and navigate to the directory where you saved get_papers.py.
+   * Execute the script with a PubMed query:
+     ==>python get_papers.py "your search query" -f output.csv
+
+     * Replace "your search query" with the actual query.
+     * Replace output.csv with the desired filename.
+   * To print the output to the console instead of writing to a file, omit the -f option.
+   * to see the help message use:
+     ==>python get_papers.py -h
